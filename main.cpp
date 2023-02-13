@@ -10,10 +10,18 @@ using namespace std;
 
 template <typename It>
 void PrintRange(It range_begin, It range_end) {
+    bool is_first = 1;
     for (auto it = range_begin; it != range_end; ++it) {
-        cout << *it << " ";
+        if (!is_first) {
+            cout << " ";
+        }
+        cout << *it;
+        is_first = 0;
     }
-    cout << endl;
+    if (!is_first) {
+        cout << endl;
+    }
+
 
 }
 
