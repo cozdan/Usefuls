@@ -392,7 +392,9 @@ auto Paginate(const Container& c, size_t page_size) {
 class RequestQueue {
 public:
     explicit RequestQueue(const SearchServer& search_server) 
-        : inner_server_(search_server)
+        : inner_server_(search_server),
+        current_time(0),
+        empties(0)
     {
         // напишите реализацию
     }
@@ -400,24 +402,7 @@ public:
     template <typename DocumentPredicate>
     vector<Document> AddFindRequest(const string& raw_query, DocumentPredicate document_predicate) {
         auto result = inner_server_.FindTopDocuments(raw_query, document_predicate);
-        QueryResult q_r;
-        q_r.query = raw_query;
-        if (result.empty()) {
-            requests_.push_back(q_r);
-            empty_.push_back(q_r);
-        }
-        else {
-            requests_.push_back(q_r);
-        }
-        if (requests_.size() > min_in_day_) {
-            if (inner_server_.FindTopDocuments(requests_.front().query, document_predicate).empty()) {
-                requests_.pop_front();
-                empty_.pop_front();
-            }
-            else {
-                requests_.pop_front();
-            }
-        }
+        AddRequest(results.size());
         return result;
         // напишите реализацию
     }
@@ -430,20 +415,34 @@ public:
         // напишите реализацию
     }
     int GetNoResultRequests() const {
-        return static_cast<int>(empty_.size());
+        return empties;
         // напишите реализацию
     }
 private:
     struct QueryResult {
-        string query;
+        uint64_t timestamp;
+        int results;
         // определите, что должно быть в структуре
     };
     const SearchServer& inner_server_;
-
     deque<QueryResult> requests_;
+    uint64_t current_time_;
     const static int min_in_day_ = 1440;
-    deque<QueryResult> empty_;
+    int empties_;
     // возможно, здесь вам понадобится что-то ещё
+    void AddRequest(int results) {
+        ++current_time_;
+        while (!requests.empty() && min_in_day_ <= current_time_ - requests_.front().timestamp) {
+            if (request_.front().results == 0) {
+                --empties;
+            }
+            requests_.pop_front();
+        }
+        if (results == 0) {
+            ++empties;
+        }
+        requests_.push_back({ current_time_, results });
+    }
 };
 
 
