@@ -195,7 +195,7 @@ public:
 
         sort(matched_documents.begin(), matched_documents.end(),
             [](const Document& lhs, const Document& rhs) {
-                if (abs(lhs.relevance - rhs.relevance) < 1e-6) {
+                if (std::abs(lhs.relevance - rhs.relevance) < 1e-6) {
                     return lhs.rating > rhs.rating;
                 }
                 else {
@@ -391,38 +391,35 @@ auto Paginate(const Container& c, size_t page_size) {
 /* решение задачи "Выводим результаты поиска страницами" из темы "Итераторы" */
 class RequestQueue {
 public:
-    explicit RequestQueue(const SearchServer& search_server) 
+    explicit RequestQueue(const SearchServer& search_server)
         : inner_server_(search_server),
-        current_time(0),
-        empties(0)
+        current_time_(0),
+        empties_(0)
     {
-        // напишите реализацию
     }
-    // сделаем "обёртки" для всех методов поиска, чтобы сохранять результаты для нашей статистики
     template <typename DocumentPredicate>
     vector<Document> AddFindRequest(const string& raw_query, DocumentPredicate document_predicate) {
-        auto result = inner_server_.FindTopDocuments(raw_query, document_predicate);
-        AddRequest(results.size());
+        const auto result = search_server_.FindTopDocuments(raw_query, document_predicate);
+        AddRequest(result.size());
         return result;
-        // напишите реализацию
     }
     vector<Document> AddFindRequest(const string& raw_query, DocumentStatus status) {
-        return AddFindRequest(raw_query, [status](int document_id, DocumentStatus document_status, int rating) {return document_status == status; });
-        // напишите реализацию
+        const auto result = search_server_.FindTopDocuments(raw_query, status);
+        AddRequest(result.size());
+        return result;
     }
     vector<Document> AddFindRequest(const string& raw_query) {
-        return AddFindRequest(raw_query, DocumentStatus::ACTUAL);
-        // напишите реализацию
+        const auto result = search_server_.FindTopDocuments(raw_query);
+        AddRequest(result.size());
+        return result;
     }
     int GetNoResultRequests() const {
-        return empties;
-        // напишите реализацию
+        return empties_;
     }
 private:
     struct QueryResult {
         uint64_t timestamp;
         int results;
-        // определите, что должно быть в структуре
     };
     const SearchServer& inner_server_;
     deque<QueryResult> requests_;
@@ -432,14 +429,14 @@ private:
     // возможно, здесь вам понадобится что-то ещё
     void AddRequest(int results) {
         ++current_time_;
-        while (!requests.empty() && min_in_day_ <= current_time_ - requests_.front().timestamp) {
-            if (request_.front().results == 0) {
-                --empties;
+        while (!requests_.empty() && min_in_day_ <= current_time_ - requests_.front().timestamp) {
+            if (requests_.front().results == 0) {
+                --empties_;
             }
             requests_.pop_front();
         }
         if (results == 0) {
-            ++empties;
+            ++empties_;
         }
         requests_.push_back({ current_time_, results });
     }
